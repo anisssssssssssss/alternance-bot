@@ -1,0 +1,29 @@
+name: Scan offres alternance
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'   # toutes les 3 heures
+  workflow_dispatch:          # permet de le lancer manuellement depuis GitHub aussi
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Lancer le script
+        env:
+          LBA_API_TOKEN: ${{ secrets.LBA_API_TOKEN }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
