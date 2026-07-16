@@ -27,7 +27,7 @@ def sauvegarder_offres_envoyees(ids_envoyes):
         json.dump(list(ids_envoyes), f)
 
 
-def rechercher_offres():
+def rechercher_offres(criteres):
     url = "https://api.apprentissage.beta.gouv.fr/api/job/v1/search"
     
     headers = {
@@ -35,11 +35,11 @@ def rechercher_offres():
     }
     
     params = {
-        "romes": "M1805",           # code ROME "Études et développement informatique"
-        "longitude": 2.3522,          # Paris
-        "latitude": 48.8566,
-        "radius": 30,                 # rayon en km
-        "target_diploma_level": "5"   # niveau bac (à ajuster selon tes critères)
+        "romes": criteres["rome_code"],
+        "longitude": criteres["longitude"],
+        "latitude": criteres["latitude"],
+        "radius": criteres["radius"],
+        "target_diploma_level": criteres["target_diploma_level"]
     }
     
     response = requests.get(url, headers=headers, params=params)
@@ -100,14 +100,31 @@ def formater_offre(job):
     
     return f"📌 {titre}\n📍 {adresse}\n🔗 {lien}"
 
+def recuperer_criteres():
+    """Va chercher les critères configurés via l'interface web, sur Render"""
+    url = "https://alternance-bot-cil7.onrender.com/criteres"
+    
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Impossible de récupérer les critères : {response.status_code}")
+        return None
 
 if __name__ == "__main__":
-    resultats = rechercher_offres()
+    criteres = recuperer_criteres()
+    
+    if criteres is None:
+        print("Impossible de continuer sans critères")
+        exit()
+    
+    resultats = rechercher_offres(criteres)  # on va devoir adapter cette fonction juste après
     
     if resultats:
         jobs = resultats["jobs"]
         
-        mots_cles = ["web", "développeur", "développement"]
+        mots_cles = criteres["mots_cles"]  # au lieu de la liste en dur
         offres_pertinentes = filtrer_offres(jobs, mots_cles)
         offres_uniques = dedupliquer_offres(offres_pertinentes)
         
