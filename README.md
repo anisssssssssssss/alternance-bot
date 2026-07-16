@@ -1,6 +1,3 @@
-Voici la version sans emojis :
-markdown# Alternance Bot
-
 Bot automatisé qui surveille les nouvelles offres d'alternance en informatique 
 (Île-de-France) et envoie une alerte Telegram en temps réel dès qu'une offre 
 correspondant à mes critères est publiée.
@@ -32,28 +29,25 @@ notifie directement sur Telegram, sans action de ma part.
 
 ## Installation
 
-\`\`\`bash
+bash :
+
 git clone https://github.com/TON_USERNAME/alternance-bot.git
 cd alternance-bot
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-\`\`\`
 
 Crée un fichier `.env` à la racine avec :
-\`\`\`
+
 LBA_API_TOKEN=ton_token
 TELEGRAM_TOKEN=ton_token
 TELEGRAM_CHAT_ID=ton_chat_id
-\`\`\`
 
-\`\`\`bash
+Et executer :
 python3 main.py
-\`\`\`
 
-## Aperçu
 
-![Exemple d'alerte reçue](screenshots/exemple-alerte.png)
+
 
 ## Améliorations possibles
 
