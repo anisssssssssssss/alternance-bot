@@ -4,7 +4,18 @@ from flask import request, jsonify
 from flask import render_template
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///criteres.db"
+
+import os
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///criteres.db")
+
+# Render fournit parfois l'URL avec "postgres://", mais SQLAlchemy attend "postgresql://"
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+
+
 db = SQLAlchemy(app)
 
 
