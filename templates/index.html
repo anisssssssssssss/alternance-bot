@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Console de veille — Alternance Bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0c0f;
+    --panel: #14181d;
+    --panel-2: #191e24;
+    --border: #262b32;
+    --text: #e8e6df;
+    --muted: #7d8590;
+    --amber: #ffb020;
+    --amber-dim: #7a5417;
+    --teal: #2dd4bf;
+    --red: #ff5f56;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Manrope', sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 600px at 85% -10%, rgba(255,176,32,0.06), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+
+  .console{
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  .status-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .dot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 0 rgba(45,212,191,0.5);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot{
+    0%{ box-shadow: 0 0 0 0 rgba(45,212,191,0.45); }
+    70%{ box-shadow: 0 0 0 7px rgba(45,212,191,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(45,212,191,0); }
+  }
+
+  h1{
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+  }
+
+  .subtitle{
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 0 0 36px;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: 300px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  @media (max-width: 760px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Radar ---------- */
+
+  .radar-panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: sticky;
+    top: 24px;
+  }
+
+  .radar-eyebrow{
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .radar-scope{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at center, rgba(255,176,32,0.05), transparent 70%),
+      var(--bg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .ring{
+    position:absolute; border-radius:50%;
+    border: 1px solid rgba(255,176,32,0.15);
+    top:50%; left:50%; transform: translate(-50%,-50%);
+    transition: width 0.4s ease, height 0.4s ease;
+  }
+
+  .crosshair{
+    position:absolute; background: rgba(255,176,32,0.12);
+  }
+  .crosshair.h{ width:100%; height:1px; top:50%; left:0; }
+  .crosshair.v{ height:100%; width:1px; left:50%; top:0; }
+
+  .sweep{
+    position:absolute; inset:0;
+    background: conic-gradient(from 0deg, rgba(255,176,32,0.35), transparent 22%);
+    animation: spin 4.5s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .radar-center{
+    position:absolute; top:50%; left:50%;
+    width:6px; height:6px; margin:-3px;
+    border-radius:50%;
+    background: var(--amber);
+    box-shadow: 0 0 10px 2px rgba(255,176,32,0.6);
+  }
+
+  .blip{
+    position:absolute;
+    width:7px; height:7px; margin:-3.5px;
+    border-radius:50%;
+    background: var(--teal);
+    box-shadow: 0 0 8px 1px rgba(45,212,191,0.7);
+    animation: blip-pulse 1.8s ease-in-out infinite;
+    opacity: 0;
+    animation-fill-mode: forwards;
+  }
+  @keyframes blip-pulse{
+    0%{ transform: scale(0.7); opacity: 0.5; }
+    50%{ transform: scale(1.15); opacity: 1; }
+    100%{ transform: scale(0.7); opacity: 0.5; }
+  }
+  @keyframes blip-enter{ to{ opacity:1; } }
+
+  .radar-readout{
+    margin-top: 18px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    display:flex;
+    justify-content: space-between;
+  }
+  .radar-readout strong{ color: var(--amber); font-weight: 500; }
+
+  /* ---------- Form panel ---------- */
+
+  .form-panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 28px 24px;
+  }
+
+  .field{ margin-bottom: 24px; }
+
+  .field-label{
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--amber);
+    display:block;
+    margin-bottom: 8px;
+  }
+
+  .field-help{
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 4px 0 0;
+  }
+
+  input[type="text"], select{
+    width:100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    appearance: none;
+  }
+
+  select{
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                       linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) center, calc(100% - 13px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  input[type="text"]:focus, select:focus{
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(255,176,32,0.15);
+  }
+
+  .chips{
+    display:flex; flex-wrap:wrap; gap:8px;
+    margin-top: 10px;
+    min-height: 20px;
+  }
+
+  .chip{
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    background: rgba(45,212,191,0.1);
+    border: 1px solid rgba(45,212,191,0.35);
+    color: var(--teal);
+    padding: 4px 10px;
+    border-radius: 20px;
+    animation: chip-in 0.25s ease;
+  }
+  @keyframes chip-in{
+    from{ opacity:0; transform: translateY(4px) scale(0.9); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  .radius-row{
+    display:flex; align-items:center; gap:14px;
+  }
+
+  input[type="range"]{
+    flex:1;
+    accent-color: var(--amber);
+    height: 4px;
+  }
+
+  .radius-value{
+    font-family: var(--mono);
+    color: var(--amber);
+    font-size: 0.9rem;
+    min-width: 52px;
+    text-align:right;
+  }
+
+  button{
+    width:100%;
+    padding: 14px;
+    border-radius: 9px;
+    border: 1px solid var(--amber);
+    background: var(--amber);
+    color: #1a1200;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  button:hover{ background: #ffc34d; }
+  button:active{ transform: scale(0.99); }
+  button:disabled{ opacity: 0.6; cursor: default; }
+
+  .toast{
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    padding: 10px 12px;
+    border-radius: 8px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+  }
+  .toast.show{ opacity:1; transform: translateY(0); }
+  .toast.ok{ background: rgba(45,212,191,0.1); border: 1px solid rgba(45,212,191,0.35); color: var(--teal); }
+  .toast.err{ background: rgba(255,95,86,0.1); border: 1px solid rgba(255,95,86,0.35); color: var(--red); }
+
+  @media (prefers-reduced-motion: reduce){
+    .sweep{ animation: none; background: conic-gradient(from 0deg, rgba(255,176,32,0.12), transparent 30%); }
+    .blip, .dot{ animation: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div class="console">
+    <div class="status-bar"><span class="dot"></span>VEILLE ACTIVE — SCAN TOUTES LES 3H</div>
+    <h1>Console de veille</h1>
+    <p class="subtitle">Configure les critères que ton bot utilise pour détecter les nouvelles offres.</p>
+
+    <div class="layout">
+      <div class="radar-panel">
+        <div class="radar-eyebrow">ZONE DE DÉTECTION</div>
+        <div class="radar-scope" id="scope">
+          <div class="crosshair h"></div>
+          <div class="crosshair v"></div>
+          <div class="ring" id="ring-1"></div>
+          <div class="ring" id="ring-2"></div>
+          <div class="ring" id="ring-3"></div>
+          <div class="sweep"></div>
+          <div id="blip-layer"></div>
+          <div class="radar-center"></div>
+        </div>
+        <div class="radar-readout">
+          <span>RAYON</span>
+          <strong id="readout-radius">30 km</strong>
+        </div>
+        <div class="radar-readout">
+          <span>CIBLES</span>
+          <strong id="readout-count">0</strong>
+        </div>
+      </div>
+
+      <div class="form-panel">
+        <form id="criteres-form">
+          <div class="field">
+            <label class="field-label" for="mots_cles">MOTS-CLÉS</label>
+            <input type="text" id="mots_cles" placeholder="web, développeur, full-stack">
+            <p class="field-help">Séparés par des virgules — une offre matche si un seul mot apparaît.</p>
+            <div class="chips" id="chips"></div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="rome_code">MÉTIER</label>
+            <select id="rome_code">
+              <option value="M1805">Études et développement informatique</option>
+              <option value="M1802">Expertise et support en systèmes d'information</option>
+              <option value="M1801">Administration de systèmes d'information</option>
+              <option value="M1806">Conseil et maîtrise d'ouvrage en systèmes d'information</option>
+              <option value="M1803">Direction des systèmes d'information</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="target_diploma_level">NIVEAU DE DIPLÔME VISÉ</label>
+            <select id="target_diploma_level">
+              <option value="3">CAP / BEP</option>
+              <option value="4">Bac</option>
+              <option value="5" selected>Bac+2</option>
+              <option value="6">Bac+3 / Bac+4</option>
+              <option value="7">Bac+5</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="radius">RAYON DE RECHERCHE</label>
+            <div class="radius-row">
+              <input type="range" id="radius" min="5" max="80" value="30" step="5">
+              <span class="radius-value" id="radius-label">30 km</span>
+            </div>
+            <p class="field-help">Depuis Paris, Île-de-France.</p>
+          </div>
+
+          <button type="submit" id="submit-btn">ENREGISTRER LES CRITÈRES</button>
+          <div class="toast" id="toast"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const motsClesInput = document.getElementById("mots_cles");
+  const chipsLayer = document.getElementById("chips");
+  const blipLayer = document.getElementById("blip-layer");
+  const radiusInput = document.getElementById("radius");
+  const radiusLabel = document.getElementById("radius-label");
+  const readoutRadius = document.getElementById("readout-radius");
+  const readoutCount = document.getElementById("readout-count");
+  const rings = [document.getElementById("ring-1"), document.getElementById("ring-2"), document.getElementById("ring-3")];
+  const form = document.getElementById("criteres-form");
+  const toast = document.getElementById("toast");
+  const submitBtn = document.getElementById("submit-btn");
+
+  function currentKeywords(){
+    return motsClesInput.value
+      .split(",")
+      .map(m => m.trim())
+      .filter(m => m.length > 0);
+  }
+
+  function renderChipsAndBlips(){
+    const keywords = currentKeywords();
+
+    chipsLayer.innerHTML = "";
+    keywords.forEach(word => {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = word;
+      chipsLayer.appendChild(chip);
+    });
+
+    blipLayer.innerHTML = "";
+    keywords.forEach((word, i) => {
+      const angle = (i / Math.max(keywords.length, 1)) * 2 * Math.PI + 0.4;
+      const distance = 24 + (i % 3) * 9; // % of radius, staggered
+      const x = 50 + Math.cos(angle) * distance;
+      const y = 50 + Math.sin(angle) * distance;
+
+      const blip = document.createElement("div");
+      blip.className = "blip";
+      blip.style.left = x + "%";
+      blip.style.top = y + "%";
+      blip.style.animationDelay = (i * 0.15) + "s, " + (i * 0.15) + "s";
+      blip.style.animation = "blip-enter 0.3s ease forwards " + (i * 0.08) + "s, blip-pulse 1.8s ease-in-out infinite " + (i * 0.08 + 0.3) + "s";
+      blipLayer.appendChild(blip);
+    });
+
+    readoutCount.textContent = keywords.length;
+  }
+
+  function renderRings(){
+    const radius = parseInt(radiusInput.value);
+    radiusLabel.textContent = radius + " km";
+    readoutRadius.textContent = radius + " km";
+
+    const maxPct = 92;
+    const scale = radius / 80;
+    [0.45, 0.7, 1].forEach((factor, i) => {
+      const pct = Math.max(20, maxPct * scale * factor);
+      rings[i].style.width = pct + "%";
+      rings[i].style.height = pct + "%";
+    });
+  }
+
+  motsClesInput.addEventListener("input", renderChipsAndBlips);
+  radiusInput.addEventListener("input", renderRings);
+
+  renderRings();
+
+  function showToast(message, ok){
+    toast.textContent = message;
+    toast.className = "toast show " + (ok ? "ok" : "err");
+    setTimeout(() => { toast.className = "toast " + (ok ? "ok" : "err"); }, 2500);
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = "ENREGISTREMENT...";
+
+    const data = {
+      mots_cles: currentKeywords(),
+      latitude: 48.8566,
+      longitude: 2.3522,
+      radius: parseInt(radiusInput.value),
+      rome_code: document.getElementById("rome_code").value,
+      target_diploma_level: document.getElementById("target_diploma_level").value
+    };
+
+    try{
+      const response = await fetch("/criteres", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      if(response.ok){
+        showToast("Critères enregistrés — la prochaine veille les utilisera.", true);
+      } else {
+        showToast("Erreur lors de l'enregistrement.", false);
+      }
+    } catch(err){
+      showToast("Impossible de contacter le serveur.", false);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "ENREGISTRER LES CRITÈRES";
+    }
+  });
+</script>
+</body>
+</html>
