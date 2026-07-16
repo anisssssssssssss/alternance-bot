@@ -35,7 +35,7 @@ sur Telegram.
 
 1. Les critères de recherche (mots-clés, métier, localisation, rayon, niveau
    de diplôme) sont configurés via une interface web et stockés en base
-   PostgreSQL
+   PostgreSQL (https://alternance-bot-cil7.onrender.com/)
 2. Toutes les 3h, GitHub Actions exécute `main.py`, qui récupère ces critères
    via l'API du backend Flask
 3. Le script interroge l'API La Bonne Alternance selon ces critères
