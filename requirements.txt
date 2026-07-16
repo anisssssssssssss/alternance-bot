@@ -1,5 +1,6 @@
 requests
 python-dotenv
 python-telegram-bot
-flask flask-sqlalchemy
+flask
+flask-sqlalchemy
 gunicorn
